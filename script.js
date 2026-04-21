@@ -2,12 +2,32 @@
 // Store all episodes data from the API
 let allEpisodes = [];
 
-// Initialize the application by loading episodes and setting up event listeners
-function setup() {
-  allEpisodes = getAllEpisodes(); // Fixed shadowing
-  makePageForEpisodes(allEpisodes);
-  setupSearch();
+async function setup() {
+  // requirement 4: show loading message while fetching
+  const rootElem = document.getElementById("root");
+  rootElem.textContent = "Loading episodes, please wait...";
+
+  try {
+    const response = await fetch("https://api.tvmaze.com/shows/82/episodes");
+
+    // requirement 5: handle error response
+    if (!response.ok) {
+      throw new Error(`Failed to load episodes: ${response.status}`);
+    }
+
+    allEpisodes = await response.json();
+    // assigns to global, no const
+
+    // requirement 3: fetch only once, pass data to everything
+    makePageForEpisodes(allEpisodes);
+    setupSearch();
+  } catch (error) {
+    // requirement 5: show error to user, not just console
+    rootElem.textContent = `Something went wrong: ${error.message}. Please try refreshing the page.`;
+  }
 }
+
+window.onload = setup;
 
 // Set up search functionality to filter episodes by name or summary
 function setupSearch() {
@@ -65,6 +85,3 @@ function makePageForEpisodes(episodeList) {
     rootElem.appendChild(card);
   }
 }
-
-// Run setup when the page loads
-window.onload = setup;
