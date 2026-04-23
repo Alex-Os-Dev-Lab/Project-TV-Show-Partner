@@ -50,14 +50,17 @@ function populateShowSelector(shows) {
     const showId = event.target.value;
     const rootElem = document.getElementById("root");
     const searchInput = document.getElementById("search-bar");
+    const episodeSelector = document.getElementById("episode-selector");
 
-    // Reset search bar on new show selection
+    // Reset search bar and episode selector on new show selection
     searchInput.value = "";
+    episodeSelector.value = "";
 
     if (!showId) {
       rootElem.textContent =
         "Please select a show from the dropdown to view episodes.";
       document.getElementById("search-count").innerText = "";
+      populateEpisodeSelector([]);
       return;
     }
 
@@ -66,6 +69,7 @@ function populateShowSelector(shows) {
     // Requirement 6: Check cache first to avoid duplicate fetches
     if (episodeCache[showId]) {
       currentEpisodes = episodeCache[showId];
+      populateEpisodeSelector(currentEpisodes);
       makePageForEpisodes(currentEpisodes);
       updateSearchCount(currentEpisodes.length, currentEpisodes.length);
     } else {
@@ -82,6 +86,7 @@ function populateShowSelector(shows) {
         episodeCache[showId] = episodesData; // Save to cache
         currentEpisodes = episodesData; // Update current state
 
+        populateEpisodeSelector(currentEpisodes);
         makePageForEpisodes(currentEpisodes);
         updateSearchCount(currentEpisodes.length, currentEpisodes.length);
       } catch (error) {
@@ -96,12 +101,56 @@ function updateSearchCount(filteredCount, totalCount) {
   searchCount.innerText = `Displaying ${filteredCount} / ${totalCount} episodes`;
 }
 
+function populateEpisodeSelector(episodes) {
+  const episodeSelector = document.getElementById("episode-selector");
+
+  // Clear existing options except the first placeholder
+  episodeSelector.innerHTML = '<option value="">Select an episode...</option>';
+
+  episodes.forEach((episode) => {
+    const episodeCode = formatEpisodeCode(episode.season, episode.number);
+    const option = document.createElement("option");
+    option.value = episode.id;
+    option.textContent = `${episodeCode} - ${episode.name}`;
+    episodeSelector.appendChild(option);
+  });
+
+  // Event listener for when an episode is selected
+  episodeSelector.addEventListener("change", (event) => {
+    const episodeId = event.target.value;
+    const searchInput = document.getElementById("search-bar");
+
+    // Reset search bar when selecting a specific episode
+    searchInput.value = "";
+
+    if (!episodeId) {
+      // If no episode selected, show all episodes
+      updateSearchCount(currentEpisodes.length, currentEpisodes.length);
+      makePageForEpisodes(currentEpisodes);
+      return;
+    }
+
+    // Find and display only the selected episode
+    const selectedEpisode = currentEpisodes.find(
+      (ep) => ep.id === parseInt(episodeId),
+    );
+    if (selectedEpisode) {
+      makePageForEpisodes([selectedEpisode]);
+      updateSearchCount(1, currentEpisodes.length);
+    }
+  });
+}
+
 function setupSearch() {
   const searchInput = document.getElementById("search-bar");
+  const episodeSelector = document.getElementById("episode-selector");
 
   searchInput.addEventListener("input", (event) => {
     // If no show is selected yet, do nothing
     if (currentEpisodes.length === 0) return;
+
+    // Reset episode selector when searching
+    episodeSelector.value = "";
 
     const searchTerm = event.target.value.toLowerCase();
 
